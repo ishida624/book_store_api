@@ -18,7 +18,7 @@ class Books extends Migration
             $table->string('bookName');
             $table->float('price');
             $table->unsignedBigInteger('bookStore_id');
-            $table->foreign('bookStore_id')->references('id')->on('bookStore');
+            $table->foreign('bookStore_id')->references('id')->on('bookStore')->onDelete('cascade')->onUpdate('cascade');;
             $table->timestamps();
         });
     }
