@@ -11,6 +11,6 @@ class Books extends Model
     protected $table = 'books';
     public $primaryKey = 'id';
     protected $fillable = [
-        'bookName', 'price',
+        'bookName', 'price', 'bookStore_id',
     ];
 }
