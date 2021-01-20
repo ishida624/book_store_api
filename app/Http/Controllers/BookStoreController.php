@@ -88,11 +88,10 @@ class BookStoreController extends Controller
         } else {
             return response()->json(['status' => 'error', 'message' => 'numberOfBook value type must be integer'], 400);
         }
-        if (floatval($price)) {
+        if (is_numeric($price)) {
             $numberOfBook = (float)$numberOfBook;
             $wherePrice = "where price < $price";
         } elseif ($price == null) {
-            # code...
             $wherePrice = '';
         } else {
             return response()->json(['status' => 'error', 'message' => 'price value type must be float'], 400);
