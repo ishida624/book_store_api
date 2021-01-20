@@ -13,4 +13,8 @@ class Books extends Model
     protected $fillable = [
         'bookName', 'price', 'bookStore_id',
     ];
+    public function showStore()
+    {
+        $this->belongsTo(BookStore::class, 'bookStore_id');
+    }
 }

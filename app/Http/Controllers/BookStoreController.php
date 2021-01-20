@@ -3,14 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\BookStore;
+use App\Models\Books;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class BookStoreController extends Controller
 {
-    //
-    public function ListBookStoreOpenTime(Request $request)
+    public function listBookStoreOpenTime(Request $request)
     {
         $week = $request->query('week');
         $time = $request->query('time');
@@ -45,5 +46,66 @@ class BookStoreController extends Controller
             }
         }
         return response()->json($bookStores);
+    }
+    public function listBookStoreDayOfWeek(Request $request)
+    {
+        $week = $request->query('week');
+        if (array_search($week, ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun']) === false) {
+            return response()->json(['status' => 'error', 'message' => 'week  format is wrong'], 400);
+        }
+        $bookStores = BookStore::where('openingHours', 'like', "%$week%")->get();
+        return response()->json($bookStores);
+    }
+    public function ListBookStoreMoreOrLessTime(Request $request)
+    {
+        # code...
+
+    }
+    public function listBooks(Request $request)
+    {
+        $price = (float)$request->price;
+        $orderBy = $request->orderBy;
+        if (!$price) {
+            return response()->json(['status' => 'error', 'message' => 'price value type must be double or integer'], 400);
+        }
+        if ($orderBy === 'price') {
+            $books = Books::where('price', '<', $price)->orderby('price')->get();
+        } elseif ($orderBy === 'bookName') {
+            $books = Books::where('price', '<', $price)->orderby('bookName')->get();
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'orderBy value must be price or bookName'], 400);
+        }
+        return response()->json($books);
+    }
+
+    public function listBookStoreFilterBooksAndPrice(Request $request)
+    {
+        $numberOfBook = $request->numberOfBook;
+        $moreOrLess = $request->moreOrLess;
+        $price = $request->price;
+        if (ctype_digit($numberOfBook)) {
+            $numberOfBook = (int)$numberOfBook;
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'numberOfBook value type must be integer'], 400);
+        }
+        if (floatval($price)) {
+            $numberOfBook = (float)$numberOfBook;
+            $wherePrice = "where price < $price";
+        } elseif ($price == null) {
+            # code...
+            $wherePrice = '';
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'price value type must be float'], 400);
+        }
+
+        if ($moreOrLess == 'more') {
+            $queryParam = ">$numberOfBook";
+        } elseif ($moreOrLess == 'less') {
+            $queryParam = "<$numberOfBook";
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'moreOrLess value must be more or less'], 400);
+        }
+        $bookStore = DB::select("select storeName,count(bookName) as number_of_books from bookStore as s join books as b on s.id=b.bookStore_id $wherePrice group by storeName having count(bookName)$queryParam;");
+        return response()->json($bookStore);
     }
 }

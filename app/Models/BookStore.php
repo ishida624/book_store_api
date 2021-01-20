@@ -13,4 +13,8 @@ class BookStore extends Model
     protected $fillable = [
         'storeName', 'cashBalance', 'openingHours',
     ];
+    public function showBooks()
+    {
+        return $this->hasMany(Books::class, 'bookStore_id');
+    }
 }
