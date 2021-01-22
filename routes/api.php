@@ -21,7 +21,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::get('/listBookStore/opentime', [BookStoreController::class, 'listBookStoreOpenTime']);
 Route::get('/listBookStore/opentime/dayOfWeek', [BookStoreController::class, 'listBookStoreDayOfWeek']);
-Route::get('/listBookStore/opentime/{everyDayOrWeek}/{moreOrLess}', [BookStoreController::class, 'listBookStoreMoreOrLessTime']);
+Route::get('/listBookStore/opentime/filterByTotalTime', [BookStoreController::class, 'ListBookStoreFilterByTotalTime']);
 Route::get('/listBooks', [BookStoreController::class, 'listBooks']);
 // Route::get('/listBookStore/numberOfBook', [BookStoreController::class, 'listBookStoreNumberOfBook']);
 Route::get('/listBookStore/numberOfBook/price', [BookStoreController::class, 'listBookStoreFilterBooksAndPrice']);
