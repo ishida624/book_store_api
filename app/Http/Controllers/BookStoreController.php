@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BookStore;
 use App\Models\Books;
+use App\Models\BookStoreOpenTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,55 +12,111 @@ use Illuminate\Support\Str;
 
 class BookStoreController extends Controller
 {
+    public $weekArray = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
     public function listBookStoreOpenTime(Request $request)
     {
-        $week = $request->query('week');
-        $time = $request->query('time');
+        $week = $request->week;
+        $time = $request->time;
         try {
             Carbon::parse($time);
         } catch (\Throwable $th) {
             return response()->json(['status' => 'error', 'message' => 'time format is wrong'], 400);
         }
-        if (array_search($week, ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun']) === false) {
+        if (!in_array($week, $this->weekArray)) {
             return response()->json(['status' => 'error', 'message' => 'week  format is wrong'], 400);
         }
-        $inputTime = Carbon::parse($time)->format('H:i:s');
-        $bookStores = BookStore::where('openingHours', 'like', "%$week%")->get();
-        foreach ($bookStores as $key => $bookStore) {
-            $explode = explode('/', $bookStore->openingHours);
-            foreach ($explode as $explodeString) {
-                if (strpos($explodeString, $week) !== false) {
-                    $explode2 = explode(' ', $explodeString);
-                    if (array_search('pm', $explode2) && isset($explode2[array_search('pm', $explode2) + 2])) {
-                        $startTimeStringKey = array_search('pm', $explode2);
-                    } else {
-                        $startTimeStringKey = array_search('am', $explode2);
-                    }
-                    $startTimeString = $explode2[$startTimeStringKey - 1] . $explode2[$startTimeStringKey];
-                    $closeTimeString = $explode2[$startTimeStringKey + 2] . $explode2[$startTimeStringKey + 3];
-                }
-            }
-            $closeTime = Carbon::parse($closeTimeString)->format('H:i:s');
-            $startTime = Carbon::parse($startTimeString)->format('H:i:s');
-            if (!($inputTime >= $startTime && $inputTime <= $closeTime)) {
-                $bookStores->forget($key);
-            }
-        }
+        $inputTime = Carbon::parse($time);
+        // $bookStores = BookStore::where('openingHours', 'like', "%$week%")->get();
+        // foreach ($bookStores as $key => $bookStore) {
+        //     $explode = explode('/', $bookStore->openingHours);  #將字串以/切開
+        //     foreach ($explode as $explodeString) {
+        //         if (strpos($explodeString, $week) !== false) {      #搜尋字串中是否有$week
+        //             $timeArray = app('OutputTimeService')->outPutTime($explodeString);
+        //         }
+        //     }
+        //     if (!($inputTime >= $timeArray[0] && $inputTime <= $timeArray[1])) {
+        //         $bookStores->forget($key);
+        //     }
+        // }
+        // dd("openTime$week");
+        $bookStores = BookStoreOpenTime::select('storeName')
+            ->where("openTime$week", '<=', $inputTime)
+            ->where("closeTime$week", '>=', $inputTime)
+            ->get();
         return response()->json($bookStores);
     }
     public function listBookStoreDayOfWeek(Request $request)
     {
         $week = $request->query('week');
-        if (array_search($week, ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun']) === false) {
+        if (array_search($week, $this->weekArray) === false) {
             return response()->json(['status' => 'error', 'message' => 'week  format is wrong'], 400);
         }
         $bookStores = BookStore::where('openingHours', 'like', "%$week%")->get();
         return response()->json($bookStores);
     }
-    public function ListBookStoreMoreOrLessTime(Request $request)
+    public function ListBookStoreFilterByTotalTime(Request $request)
     {
-        # code...
+        $dayOrWeek = $request->dayOrWeek;
+        $totalTime = $request->totalTime;
+        $moreOrLess = $request->moreOrLess;
+        $weekArray = $this->weekArray;
+        if ($moreOrLess !== 'more' && $moreOrLess !== 'less') {
+            return response()->json(['status' => 'error', 'message' => 'moreOrLess value must be more or less'], 400);
+        }
 
+        $bookStores = BookStoreOpenTime::all();
+        if ($dayOrWeek == 'allWeek') {
+            foreach ($bookStores as $key => $bookStore) {
+                $timeSum = 0;
+                foreach ($weekArray as $week) {
+                    $openParam = 'openTime' . $week;
+                    $closeParam = 'closeTime' . $week;
+                    $openTime = $bookStore->$openParam;
+                    $closeTime = $bookStore->$closeParam;
+                    $timediff = $closeTime->diffInMinutes($openTime);
+                    $timeSum = $timeSum + $timediff;
+                }
+                if ($moreOrLess === 'more') {
+                    if ($timeSum / 60 < $totalTime) {
+                        $bookStores->forget($key);
+                    }
+                } else {
+                    if ($timeSum / 60 > $totalTime) {
+                        $bookStores->forget($key);
+                    }
+                }
+                if (isset($bookStores[$key])) {
+                    $storeName[] = $bookStore->only('storeName');
+                }
+            }
+        } elseif (in_array($dayOrWeek, $weekArray)) {
+            foreach ($bookStores as $key2 => $bookStore) {
+                foreach ($weekArray as $week) {
+                    $openParam = 'openTime' . $week;
+                    $closeParam = 'closeTime' . $week;
+                    $openTime = $bookStore->$openParam;
+                    $closeTime = $bookStore->$closeParam;
+                    $timediff = $closeTime->diffInMinutes($openTime);
+                }
+                if ($moreOrLess === 'more') {
+                    if ($timediff / 60 < $totalTime) {
+                        $bookStores->forget($key2);
+                    }
+                } else {
+                    if (
+                        $timediff / 60 > $totalTime
+                    ) {
+                        $bookStores->forget($key2);
+                    }
+                }
+                if (isset($bookStores[$key2])) {
+                    $storeName[] = $bookStore->only('storeName');
+                }
+            }
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'dayOrWeek  format is wrong'], 400);
+        }
+        return response()->json($storeName);
     }
     public function listBooks(Request $request)
     {
