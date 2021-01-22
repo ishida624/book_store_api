@@ -25,3 +25,4 @@ Route::get('/listBookStore/opentime/filterByTotalTime', [BookStoreController::cl
 Route::get('/listBooks', [BookStoreController::class, 'listBooks']);
 // Route::get('/listBookStore/numberOfBook', [BookStoreController::class, 'listBookStoreNumberOfBook']);
 Route::get('/listBookStore/numberOfBook/price', [BookStoreController::class, 'listBookStoreFilterBooksAndPrice']);
+Route::get('/searchBookAndBookStore', [BookStoreController::class, 'searchBookAndBookStore']);

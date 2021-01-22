@@ -26,19 +26,6 @@ class BookStoreController extends Controller
             return response()->json(['status' => 'error', 'message' => 'week  format is wrong'], 400);
         }
         $inputTime = Carbon::parse($time);
-        // $bookStores = BookStore::where('openingHours', 'like', "%$week%")->get();
-        // foreach ($bookStores as $key => $bookStore) {
-        //     $explode = explode('/', $bookStore->openingHours);  #將字串以/切開
-        //     foreach ($explode as $explodeString) {
-        //         if (strpos($explodeString, $week) !== false) {      #搜尋字串中是否有$week
-        //             $timeArray = app('OutputTimeService')->outPutTime($explodeString);
-        //         }
-        //     }
-        //     if (!($inputTime >= $timeArray[0] && $inputTime <= $timeArray[1])) {
-        //         $bookStores->forget($key);
-        //     }
-        // }
-        // dd("openTime$week");
         $bookStores = BookStoreOpenTime::select('storeName')
             ->where("openTime$week", '<=', $inputTime)
             ->where("closeTime$week", '>=', $inputTime)
@@ -163,5 +150,25 @@ class BookStoreController extends Controller
         }
         $bookStore = DB::select("select storeName,count(bookName) as number_of_books from bookStore as s join books as b on s.id=b.bookStore_id $wherePrice group by storeName having count(bookName)$queryParam;");
         return response()->json($bookStore);
+    }
+    public function searchBookAndBookStore(Request $request)
+    {
+        $search = $request->search;
+        $inputName = $request->name;
+        if ($search == 'book') {
+            $searchData = Books::where('bookName', 'like', "%$inputName%")
+                ->orderBy('bookName')->select('bookName')
+                ->get();
+        } elseif ($search == 'bookStore') {
+            $searchData = BookStore::where('storeName', 'like', "%$inputName%")
+                ->orderBy('bookName')->select('storeName')
+                ->get();
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'search value must be book or bookStore'], 400);
+        }
+        if (!$searchData->first()) {
+            return response()->json(['status' => 'error', 'message' => 'search not found'], 400);
+        }
+        return $searchData;
     }
 }
