@@ -18,7 +18,7 @@ class PurchaseHistory extends Migration
             $table->string('bookName');
             $table->string('storeName');
             $table->float('transactionAmount');
-            $table->string('transactionDate');
+            $table->dateTime('transactionDate');
             $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');;
             $table->timestamps();

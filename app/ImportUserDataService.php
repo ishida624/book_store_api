@@ -4,6 +4,7 @@ namespace App;
 
 use App\Models\User;
 use App\Models\PurchaseHistory;
+use Carbon\Carbon;
 
 class ImportUserDataService
 {
@@ -28,6 +29,7 @@ class ImportUserDataService
             $userDataDB = User::where('name', $userData['name'])->first();
             foreach ($userData['purchaseHistory'] as  $purchaseHistory) {
                 $purchaseHistoryDB = PurchaseHistory::where('bookName', $purchaseHistory['bookName'])->first();
+                $purchaseHistory['transactionDate'] = Carbon::parse($purchaseHistory['transactionDate']);
                 if (!$purchaseHistoryDB) {
                     PurchaseHistory::create([
                         'bookName' => $purchaseHistory['bookName'],
