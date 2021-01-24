@@ -15,6 +15,6 @@ class Books extends Model
     ];
     public function showStore()
     {
-        $this->belongsTo(BookStore::class, 'bookStore_id');
+        return $this->belongsTo(BookStore::class, 'bookStore_id');
     }
 }
