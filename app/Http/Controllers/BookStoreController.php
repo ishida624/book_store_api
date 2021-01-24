@@ -32,15 +32,19 @@ class BookStoreController extends Controller
             ->get();
         return response()->json($bookStores);
     }
-    public function listBookStoreDayOfWeek(Request $request)
+    public function listBookStoreDayOfWeek(Request $request)    #輸入week = Mon, Tues, Wed, Thurs, Fri, Sat, Sun
     {
         $week = $request->query('week');
         if (array_search($week, $this->weekArray) === false) {
             return response()->json(['status' => 'error', 'message' => 'week  format is wrong'], 400);
         }
-        $bookStores = BookStore::where('openingHours', 'like', "%$week%")->get();
+        $bookStores = BookStoreOpenTime::select('storeName')->where("openTime$week", '!=', null)->get();
+
         return response()->json($bookStores);
     }
+    #輸入dayOrWeek = Mon, Tues, Wed, Thurs, Fri, Sat, Sun or allWeek
+    #輸入 totalTime = {number} (type = float ,time = Hours)
+    #輸入 moreOrLess = more or less
     public function ListBookStoreFilterByTotalTime(Request $request)
     {
         $dayOrWeek = $request->dayOrWeek;
@@ -49,6 +53,9 @@ class BookStoreController extends Controller
         $weekArray = $this->weekArray;
         if ($moreOrLess !== 'more' && $moreOrLess !== 'less') {
             return response()->json(['status' => 'error', 'message' => 'moreOrLess value must be more or less'], 400);
+        }
+        if (!is_numeric($totalTime)) {
+            return response()->json(['status' => 'error', 'message' => 'totalTime value must be float'], 400);
         }
 
         $bookStores = BookStoreOpenTime::all();
@@ -105,11 +112,13 @@ class BookStoreController extends Controller
         }
         return response()->json($storeName);
     }
+    # 輸入 price = {number} (type = float)
+    #輸入 orderBy = price or bookName
     public function listBooks(Request $request)
     {
-        $price = (float)$request->price;
+        $price = $request->price;
         $orderBy = $request->orderBy;
-        if (!$price) {
+        if (!is_numeric($price)) {
             return response()->json(['status' => 'error', 'message' => 'price value type must be double or integer'], 400);
         }
         if ($orderBy === 'price') {
@@ -121,7 +130,9 @@ class BookStoreController extends Controller
         }
         return response()->json($books);
     }
-
+    #輸入 numberOfBook = {number} (type = integer)
+    #輸入 moreOrLess = more or less
+    #輸入 price = = {number} (type = float)
     public function listBookStoreFilterBooksAndPrice(Request $request)
     {
         $numberOfBook = $request->numberOfBook;
@@ -148,9 +159,13 @@ class BookStoreController extends Controller
         } else {
             return response()->json(['status' => 'error', 'message' => 'moreOrLess value must be more or less'], 400);
         }
-        $bookStore = DB::select("select storeName,count(bookName) as number_of_books from bookStore as s join books as b on s.id=b.bookStore_id $wherePrice group by storeName having count(bookName)$queryParam;");
+        $bookStore = DB::select("select storeName,count(bookName) as number_of_books
+         from bookStore as s join books as b on s.id=b.bookStore_id $wherePrice group by storeName 
+         having count(bookName)$queryParam;");
         return response()->json($bookStore);
     }
+    #輸入search = book or bookStore
+    #輸入 name = {bookName} or {storeName}
     public function searchBookAndBookStore(Request $request)
     {
         $search = $request->search;
@@ -161,7 +176,7 @@ class BookStoreController extends Controller
                 ->get();
         } elseif ($search == 'bookStore') {
             $searchData = BookStore::where('storeName', 'like', "%$inputName%")
-                ->orderBy('bookName')->select('storeName')
+                ->orderBy('storeName')->select('storeName')
                 ->get();
         } else {
             return response()->json(['status' => 'error', 'message' => 'search value must be book or bookStore'], 400);
