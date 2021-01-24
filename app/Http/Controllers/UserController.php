@@ -98,27 +98,31 @@ class UserController extends Controller
         if (!$bookData) {
             return response()->json(['status' => 'error', 'message' => 'bookName is wrong'], 400);
         }
-
-        DB::transaction(
-            function () use ($bookData, $user) {
-                $price = $bookData->price;
-                $bookStore = $bookData->showStore;
-                $now = Carbon::now();
-                $userCashBalance = $user->cashBalance;
-                $bookStoreCashBalance = $bookStore->cashBalance;
-                $user->update(['cashBalance' => $userCashBalance - $price]);
-                $bookStore->update(['cashBalance' => $bookStoreCashBalance + $price]);
-                PurchaseHistory::create([
-                    'bookName' => $bookData->bookName,
-                    'storeName' => $bookStore->storeName,
-                    'transactionAmount' => $price,
-                    'transactionDate' => $now,
-                    'user_id' => $user->id,
-                ]);
-            }
-        );
+        try {
+            DB::transaction(
+                function () use ($bookData, $user) {
+                    $price = $bookData->price;
+                    $bookStore = $bookData->showStore;
+                    $now = Carbon::now();
+                    $userCashBalance = $user->cashBalance;
+                    $bookStoreCashBalance = $bookStore->cashBalance;
+                    $bookStore->update(['cashBalance' => $bookStoreCashBalance + $price]);
+                    $user->update(['cashBalance' => $userCashBalance - $price]);
+                    PurchaseHistory::create([
+                        'bookName' => $bookData->bookName,
+                        'storeName' => $bookStore->storeName,
+                        'transactionAmount' => $price,
+                        'transactionDate' => $now,
+                        'user_id' => $user->id,
+                    ]);
+                }
+            );
+        } catch (\Throwable $th) {
+            return response()->json(['status' => 'error', 'message' => 'transaction error'], 400);
+        }
         return response()->json(['status' => 'OK', 'message' => 'transaction successfully'], 200);
     }
+
     #輸入userName = [{要更改的userName},{要改成什麼userName}]
     #輸入bookName = [{要更改的bookName},{要改成什麼bookName}]
     #輸入price = {number} (type = float)
@@ -129,9 +133,7 @@ class UserController extends Controller
         $bookName = $request->bookName;
         $price = $request->price;
         $storeName = $request->storeName;
-        if (!is_numeric($price)) {
-            return response()->json(['status' => 'error', 'message' => 'price value type must be double or integer'], 400);
-        }
+
         DB::beginTransaction();
         if (isset($userName)) {
             $user = User::where('name', $userName[0])->first();
@@ -154,7 +156,11 @@ class UserController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'bookName already exists'], 400);
             }
             $book->update(['bookName' => $bookName[1]]);
+            DB::select("update purchaseHistory set bookName = '$bookName[1]' where bookName = '$bookName[0]'");
             if (isset($price)) {
+                if (!is_numeric($price)) {
+                    return response()->json(['status' => 'error', 'message' => 'price value type must be double or integer'], 400);
+                }
                 $book->update(['price' => $price]);
             }
         }
@@ -169,6 +175,7 @@ class UserController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'storeName already exists'], 400);
             }
             $bookStore->update(['storeName' => $storeName[1]]);
+            DB::select("update purchaseHistory set storeName = '$storeName[1]' where storeName = '$storeName[0]'");
         }
         DB::commit();
         return response()->json(['status' => 'OK', 'message' => 'update successfully'], 200);
