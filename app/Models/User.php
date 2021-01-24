@@ -21,6 +21,10 @@ class User extends Authenticatable
         'email',
         'cashBalance',
     ];
+    public function showPurchaseHistory()
+    {
+        return $this->hasMany(PurchaseHistory::class, 'user_id');
+    }
 
     /**
      * The attributes that should be hidden for arrays.
