@@ -135,7 +135,7 @@ class UserController extends Controller
         $storeName = $request->storeName;
 
         DB::beginTransaction();
-        if (isset($userName)) {
+        if (isset($userName[0]) && isset($userName[1])) {
             $user = User::where('name', $userName[0])->first();
             if (!$user) {
                 return response()->json(['status' => 'error', 'message' => 'user not found'], 400);
@@ -145,7 +145,7 @@ class UserController extends Controller
             }
             $user->update(['name' => $userName[1]]);
         }
-        if (isset($bookName)) {
+        if (isset($bookName[0]) && isset($bookName[1])) {
             $book = Books::where('bookName', $bookName[0])->first();
             if (!$book) {
                 DB::rollBack();
@@ -164,7 +164,7 @@ class UserController extends Controller
                 $book->update(['price' => $price]);
             }
         }
-        if (isset($storeName)) {
+        if (isset($storeName[0]) && isset($storeName[1])) {
             $bookStore = BookStore::where('storeName', $storeName[0])->first();
             if (!$bookStore) {
                 DB::rollBack();
