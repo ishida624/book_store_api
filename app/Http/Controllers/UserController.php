@@ -168,7 +168,7 @@ class UserController extends Controller
             $bookStore = BookStore::where('storeName', $storeName[0])->first();
             if (!$bookStore) {
                 DB::rollBack();
-                return response()->json(['status' => 'error', 'message' => 'book not found'], 400);
+                return response()->json(['status' => 'error', 'message' => 'store not found'], 400);
             }
             if (null !== (BookStore::where('storeName', $storeName[1])->first())) {
                 DB::rollBack();
